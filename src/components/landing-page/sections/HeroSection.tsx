@@ -60,7 +60,7 @@ export const HeroSection: React.FC = () => {
                   Explore the Protocol
                 </span>
                 <svg
-                  className="w-5 h-5 shrink-0"
+                  className="w-5 h-5 shrink-0 transition-transform duration-200 ease-out group-hover:translate-x-1.5"
                   fill="none"
                   viewBox="0 0 20 20"
                 >
@@ -82,9 +82,36 @@ export const HeroSection: React.FC = () => {
               </button>
             </div>
             <div className="flex gap-8 items-center justify-center mt-10">
-              <FaGithub className="text-[#0a7a82]" size={30} />
-              <FaEnvelope className="text-[#0a7a82]" size={30} />
-              <IoDocumentText className="text-[#0a7a82]" size={30} />
+              <a
+                href="#"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hover:opacity-80"
+              >
+                <FaGithub className="text-[#0a7a82] animate-bounce" size={30} />
+              </a>
+              <a
+                href="#"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hover:opacity-80"
+              >
+                <FaEnvelope
+                  className="text-[#0a7a82] animate-bounce"
+                  size={30}
+                />
+              </a>
+              <a
+                href="#"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hover:opacity-80"
+              >
+                <IoDocumentText
+                  className="text-[#0a7a82] animate-bounce"
+                  size={30}
+                />
+              </a>
             </div>
           </div>
         </div>
