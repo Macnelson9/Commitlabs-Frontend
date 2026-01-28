@@ -1,8 +1,10 @@
 import Link from 'next/link'
 import styles from './page.module.css'
 import SolutionSection from '@/components/SolutionSection'
+import { HeroSection } from '@/components/landing-page/sections/HeroSection'
+import React from 'react'
 
-export default function Home() {
+export default function page() {
   return (
     <main id="main-content" className={styles.main}>
       <div className={styles.container}>
@@ -59,8 +61,14 @@ export default function Home() {
         </section>
 
       </div>
+      
+          <div className="min-h-screen w-full bg-[#0a0a0a] flex items-center justify-center overflow-hidden">
+
+      <HeroSection />
+
+    </div>
       <SolutionSection />
     </main>
+
   )
 }
-
