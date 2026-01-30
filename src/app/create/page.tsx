@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import CreateCommitmentStepSelectType from '@/components/CreateCommitmentStepSelectType'
+import CreateCommitmentStepReview from '@/components/CreateCommitmentStepReview';
 import CommitmentCreatedModal from '@/components/modals/Commitmentcreatedmodal';
 
 // Generate a random commitment ID (in production, this comes from the blockchain)
@@ -21,40 +22,100 @@ export default function CreateCommitment() {
   const [selectedType, setSelectedType] = useState<'safe' | 'balanced' | 'aggressive' | null>(null);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [commitmentId, setCommitmentId] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Mock data based on selected type
+  const getMockData = () => {
+    switch (selectedType) {
+      case 'safe':
+        return {
+          typeLabel: 'Safe Commitment',
+          amount: '500 XLM',
+          asset: 'XLM',
+          durationDays: 30,
+          maxLossPercent: 2,
+          earlyExitPenalty: '5.00 XLM',
+          estimatedFees: '0.10 XLM',
+          estimatedYield: '5.2% APY',
+          commitmentStart: 'Immediately',
+          commitmentEnd: '2/28/2026'
+        };
+      case 'balanced':
+        return {
+          typeLabel: 'Balanced Commitment',
+          amount: '1000 XLM',
+          asset: 'XLM',
+          durationDays: 60,
+          maxLossPercent: 8,
+          earlyExitPenalty: '20.00 XLM',
+          estimatedFees: '0.50 XLM',
+          estimatedYield: '12.5% APY',
+          commitmentStart: 'Immediately',
+          commitmentEnd: '3/30/2026'
+        };
+      case 'aggressive':
+        return {
+          typeLabel: 'Aggressive Commitment',
+          amount: '2000 XLM',
+          asset: 'XLM',
+          durationDays: 90,
+          maxLossPercent: 100, // Should probably handle "No protection" or similar logic in presentation if needed, but number is simpler
+          earlyExitPenalty: '100.00 XLM',
+          estimatedFees: '1.20 XLM',
+          estimatedYield: '45.0% APY',
+          commitmentStart: 'Immediately',
+          commitmentEnd: '4/30/2026'
+        };
+      default:
+        return {
+          typeLabel: 'Unknown',
+          amount: '0 XLM',
+          asset: 'XLM',
+          durationDays: 0,
+          maxLossPercent: 0,
+          earlyExitPenalty: '0 XLM',
+          estimatedFees: '0 XLM',
+          estimatedYield: '0%',
+          commitmentStart: '-',
+          commitmentEnd: '-'
+        };
+    }
+  };
 
   const handleSelectType = (type: 'safe' | 'balanced' | 'aggressive') => {
     setSelectedType(type);
   };
 
   const handleNext = (type: 'safe' | 'balanced' | 'aggressive') => {
-    // For now, simulate successful commitment creation
-    // In production, this would go through steps 2 & 3, then create on blockchain
+    // In production, we'd go to step 2. For now, we skip to step 3 per instructions/simplification
+    // or simulate Step 2 completion.
     console.log('Selected commitment type:', type);
-
-    // Simulate transaction success
-    setTimeout(() => {
-      const newCommitmentId = generateCommitmentId();
-      setCommitmentId(newCommitmentId);
-      setShowSuccessModal(true);
-    }, 500);
-
-    // In a real implementation:
-    // setStep(2) → Configure
-    // setStep(3) → Review
-    // Then create commitment → Show modal on success
+    setStep(3); // Skip straight to Review for this task
   };
 
   const handleBack = () => {
     if (step > 1) {
-      setStep(step - 1);
+      // If we are on step 3 and want to go back, we might want to go to step 2 technically,
+      // but since we skipped it, we go back to 1.
+      setStep(1);
     } else {
       router.push('/');
     }
   };
 
+  const handleSubmit = () => {
+    setIsSubmitting(true);
+
+    // Simulate transaction delay
+    setTimeout(() => {
+      setIsSubmitting(false);
+      const newCommitmentId = generateCommitmentId();
+      setCommitmentId(newCommitmentId);
+      setShowSuccessModal(true);
+    }, 2000);
+  };
+
   const handleViewCommitment = () => {
-    // Extract numeric ID from CMT-XXX format
-    // In production, use the actual commitment ID from blockchain
     const numericId = commitmentId.split('-')[1] || '1';
     router.push(`/commitments/${numericId}`);
   };
@@ -72,47 +133,41 @@ export default function CreateCommitment() {
   };
 
   const handleViewOnExplorer = () => {
-    // In production, use actual transaction hash
     const explorerUrl = `https://stellar.expert/explorer/testnet/tx/${commitmentId}`;
     window.open(explorerUrl, '_blank');
   };
 
-  // Render Step 1 - Select Type
-  if (step === 1) {
-    return (
-      <>
+  return (
+    <>
+      {/* Step 1 - Select Type */}
+      {step === 1 && (
         <CreateCommitmentStepSelectType
           selectedType={selectedType}
           onSelectType={handleSelectType}
           onNext={handleNext}
           onBack={handleBack}
         />
+      )}
 
-        <CommitmentCreatedModal
-          isOpen={showSuccessModal}
-          commitmentId={commitmentId}
-          onViewCommitment={handleViewCommitment}
-          onCreateAnother={handleCreateAnother}
-          onClose={handleCloseModal}
-          onViewOnExplorer={handleViewOnExplorer}
+      {/* Step 3 - Review */}
+      {step === 3 && selectedType && (
+        <CreateCommitmentStepReview
+          {...getMockData()}
+          isSubmitting={isSubmitting}
+          onBack={handleBack}
+          onSubmit={handleSubmit}
         />
-      </>
-    );
-  }
+      )}
 
-  // Future steps would be rendered here
-  return (
-    <div className="min-h-screen bg-black text-white flex items-center justify-center p-6">
-      <div className="text-center">
-        <h1 className="text-3xl font-bold mb-4">Step {step}</h1>
-        <p className="text-gray-400 mb-8">Future steps will be implemented here</p>
-        <button
-          onClick={() => router.push('/')}
-          className="px-6 py-3 bg-gray-800 text-white rounded-lg hover:bg-gray-700 transition-colors"
-        >
-          Back to Home
-        </button>
-      </div>
-    </div>
+      {/* Success Modal */}
+      <CommitmentCreatedModal
+        isOpen={showSuccessModal}
+        commitmentId={commitmentId}
+        onViewCommitment={handleViewCommitment}
+        onCreateAnother={handleCreateAnother}
+        onClose={handleCloseModal}
+        onViewOnExplorer={handleViewOnExplorer}
+      />
+    </>
   );
 }
