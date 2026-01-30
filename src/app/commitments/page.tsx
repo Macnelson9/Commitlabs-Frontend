@@ -1,9 +1,10 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useMemo } from 'react'
 import Link from 'next/link'
 import MyCommitmentsHeader from '@/components/MyCommitmentsHeader'
+import MyCommitmentsOverview from '@/components/MyCommitmentsOverview/MyCommitmentsOverview'
 import CommitmentEarlyExitModal from '@/components/CommitmentEarlyExitModal/CommitmentEarlyExitModal'
 import styles from './page.module.css'
 
@@ -53,6 +54,12 @@ export default function MyCommitments() {
   const [earlyExitCommitmentId, setEarlyExitCommitmentId] = useState<string | null>(null)
   const [hasAcknowledged, setHasAcknowledged] = useState(false)
 
+  // Filter State
+  const [searchQuery, setSearchQuery] = useState('')
+  const [statusFilter, setStatusFilter] = useState('All')
+  const [typeFilter, setTypeFilter] = useState('All')
+  const [sortBy, setSortBy] = useState('Newest')
+
   const commitmentForEarlyExit = mockCommitments.find((c) => c.id === earlyExitCommitmentId)
   const earlyExitSummary = commitmentForEarlyExit
     ? getEarlyExitValues(commitmentForEarlyExit.amount)
@@ -74,78 +81,50 @@ export default function MyCommitments() {
     closeEarlyExitModal()
   }, [earlyExitCommitmentId, closeEarlyExitModal])
 
+  // Stats Data (Mocked)
+  const stats = useMemo(() => ({
+    totalActive: 3,
+    totalCommittedValue: '$461,850',
+    averageComplianceScore: '86%',
+    totalFeesGenerated: '$1,250',
+  }), [])
+
+  // Filtered Commitments
+  const filteredCommitments = useMemo(() => {
+    return mockCommitments.filter((c) => {
+      const matchesSearch = c.id.toLowerCase().includes(searchQuery.toLowerCase())
+      const matchesStatus = statusFilter === 'All' || c.status.toLowerCase() === statusFilter.toLowerCase()
+      const matchesType = typeFilter === 'All' || c.type.toLowerCase() === typeFilter.toLowerCase()
+      return matchesSearch && matchesStatus && matchesType
+    })
+  }, [searchQuery, statusFilter, typeFilter])
+
   return (
     <main id="main-content">
-      <MyCommitmentsHeader 
+      <MyCommitmentsHeader
         onBack={() => router.push('/')}
         onCreateNew={() => router.push('/create')}
       />
 
       <div className={styles.container}>
-        <div className={styles.commitmentsList}>
-          {mockCommitments.length === 0 ? (
-            <div className={styles.emptyState}>
-              <p>No commitments yet. Create your first commitment to get started.</p>
-              <Link href="/create" className={styles.createLink}>
-                Create Commitment
-              </Link>
-            </div>
-          ) : (
-            mockCommitments.map((commitment) => (
-              <div key={commitment.id} className={styles.commitmentCard}>
-                <div className={styles.cardHeader}>
-                  <h2>{commitment.type} Commitment</h2>
-                  <span className={`${styles.status} ${styles[commitment.status]}`}>
-                    {commitment.status}
-                  </span>
-                </div>
+        <MyCommitmentsOverview
+          stats={stats}
+          search={{
+            searchQuery,
+            onSearchChange: setSearchQuery
+          }}
+          filters={{
+            status: statusFilter,
+            type: typeFilter,
+            sortBy,
+            onStatusChange: setStatusFilter,
+            onTypeChange: setTypeFilter,
+            onSortByChange: setSortBy
+          }}
+        />
 
-                <div className={styles.cardBody}>
-                  <div className={styles.metric}>
-                    <span className={styles.label}>Amount:</span>
-                    <span className={styles.value}>{commitment.amount} XLM</span>
-                  </div>
-                  <div className={styles.metric}>
-                    <span className={styles.label}>Current Value:</span>
-                    <span className={styles.value}>{commitment.currentValue} XLM</span>
-                  </div>
-                  <div className={styles.metric}>
-                    <span className={styles.label}>Duration:</span>
-                    <span className={styles.value}>{commitment.duration} days</span>
-                  </div>
-                  <div className={styles.metric}>
-                    <span className={styles.label}>Max Loss:</span>
-                    <span className={styles.value}>{commitment.maxLoss}%</span>
-                  </div>
-                  <div className={styles.metric}>
-                    <span className={styles.label}>Compliance Score:</span>
-                    <span className={styles.value}>{commitment.complianceScore}/100</span>
-                  </div>
-                  <div className={styles.metric}>
-                    <span className={styles.label}>Expires:</span>
-                    <span className={styles.value}>{commitment.expiresAt}</span>
-                  </div>
-                </div>
-
-                <div className={styles.cardActions}>
-                  <button className={styles.actionButton} aria-label={`View details for ${commitment.type} commitment`}>
-                    View Details
-                  </button>
-                  <button className={styles.actionButton} aria-label={`View attestations for ${commitment.type} commitment`}>
-                    View Attestations
-                  </button>
-                  <button
-                    type="button"
-                    className={styles.actionButtonDanger}
-                    aria-label={`Early exit for ${commitment.type} commitment`}
-                    onClick={() => openEarlyExitModal(commitment.id)}
-                  >
-                    Early Exit
-                  </button>
-                </div>
-              </div>
-            ))
-          )}
+        <div className={styles.resultsCount}>
+          {filteredCommitments.length} {filteredCommitments.length === 1 ? 'commitment' : 'commitments'} found
         </div>
       </div>
 
