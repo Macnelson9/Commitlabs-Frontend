@@ -3,8 +3,8 @@
 import { useRouter } from 'next/navigation'
 import { useState, useCallback, useMemo } from 'react'
 import MyCommitmentsHeader from '@/components/MyCommitmentsHeader'
-import MyCommitmentsStats from '@/components/MyCommitmentsStats'
-import MyCommitmentsFilters from '@/components/MyCommitmentsFilters'
+import MyCommitmentsStats from '@/components/MyCommitmentsStats/MyCommitmentsStats'
+import MyCommitmentsFilters from '@/components/MyCommitmentsFilters/MyCommitmentsFilters'
 import MyCommitmentsGrid from '@/components/MyCommitmentsGrid'
 import CommitmentEarlyExitModal from '@/components/CommitmentEarlyExitModal/CommitmentEarlyExitModal'
 import { Commitment, CommitmentStats } from '@/types/commitment'
@@ -130,21 +130,37 @@ function getEarlyExitValues(originalAmount: string, asset: string) {
 export default function MyCommitments() {
   const router = useRouter()
 
+  // State
   const [searchQuery, setSearchQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState('All')
   const [typeFilter, setTypeFilter] = useState('All')
+  const [sortBy, setSortBy] = useState('Newest')
 
   const [earlyExitCommitmentId, setEarlyExitCommitmentId] = useState<string | null>(null)
   const [hasAcknowledged, setHasAcknowledged] = useState(false)
 
+  // Derived State
   const filteredCommitments = useMemo(() => {
-    return mockCommitments.filter((c) => {
+    let filtered = mockCommitments.filter((c) => {
       const matchesSearch = c.id.toLowerCase().includes(searchQuery.toLowerCase())
-      const matchesStatus = statusFilter === 'All' || c.status === statusFilter
-      const matchesType = typeFilter === 'All' || c.type === typeFilter
+      const matchesStatus = statusFilter === 'All' || c.status.toLowerCase() === statusFilter.toLowerCase()
+      const matchesType = typeFilter === 'All' || c.type.toLowerCase() === typeFilter.toLowerCase()
       return matchesSearch && matchesStatus && matchesType
     })
-  }, [searchQuery, statusFilter, typeFilter])
+
+    // Basic Sorting Logic
+    if (sortBy === 'ValueHighLow') {
+      filtered.sort((a, b) => Number(b.amount.replace(/,/g, '')) - Number(a.amount.replace(/,/g, '')))
+    } else if (sortBy === 'ValueLowHigh') {
+      filtered.sort((a, b) => Number(a.amount.replace(/,/g, '')) - Number(b.amount.replace(/,/g, '')))
+    } else if (sortBy === 'Newest') {
+      filtered.sort((a, b) => new Date(b.createdDate).getTime() - new Date(a.createdDate).getTime())
+    } else if (sortBy === 'Oldest') {
+      filtered.sort((a, b) => new Date(a.createdDate).getTime() - new Date(b.createdDate).getTime())
+    }
+
+    return filtered
+  }, [searchQuery, statusFilter, typeFilter, sortBy])
 
   const commitmentForEarlyExit = mockCommitments.find((c) => c.id === earlyExitCommitmentId)
   const earlyExitSummary = useMemo(() => {
@@ -153,6 +169,7 @@ export default function MyCommitments() {
       : null
   }, [commitmentForEarlyExit])
 
+  // Callbacks
   const openEarlyExitModal = useCallback((id: string) => {
     setEarlyExitCommitmentId(id)
     setHasAcknowledged(false)
@@ -175,16 +192,23 @@ export default function MyCommitments() {
         onCreateNew={() => router.push('/create')}
       />
 
-      <div className="w-full flex-1 px-[5.5rem] py-8 max-[1024px]:px-8 max-[640px]:px-4">
-        <MyCommitmentsStats stats={mockStats} />
+      <div className="w-full flex-1 px-22 py-8 max-[1024px]:px-8 max-[640px]:px-4">
+        <MyCommitmentsStats
+          totalActive={mockStats.totalActive}
+          totalCommittedValue={mockStats.totalCommittedValue}
+          averageComplianceScore={`${mockStats.avgComplianceScore}%`}
+          totalFeesGenerated={mockStats.totalFeesGenerated}
+        />
 
         <MyCommitmentsFilters
           searchQuery={searchQuery}
           onSearchChange={setSearchQuery}
-          statusFilter={statusFilter}
+          status={statusFilter}
           onStatusChange={setStatusFilter}
-          typeFilter={typeFilter}
+          type={typeFilter}
           onTypeChange={setTypeFilter}
+          sortBy={sortBy}
+          onSortByChange={setSortBy}
         />
 
         <MyCommitmentsGrid
